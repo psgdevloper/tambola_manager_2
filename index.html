@@ -21,7 +21,6 @@
             display: grid;
             grid-template-columns: repeat(10, 1fr);
             gap: 0.375rem; /* 6px */
-            /* Removed max-width to let it fill its container */
             margin: auto;
         }
         /* Base style for a number cell */
@@ -30,14 +29,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 0.75rem; /* 12px - Made smaller for narrow screens */
+            /* Responsive font size */
+            font-size: 0.75rem; /* 12px */
             font-weight: 600;
             border-radius: 0.375rem; /* 6px */
             background-color: #334155; /* bg-slate-700 */
             color: #cbd5e1; /* text-slate-300 */
             transition: all 0.2s ease-in-out;
         }
-        /* New: Media query to increase font size on larger screens */
+        /* Media query to increase font size on larger screens */
         @media (min-width: 640px) { /* sm breakpoint */
             .number-cell {
                 font-size: 0.875rem; /* 14px */
@@ -74,11 +74,11 @@
             background-color: #1e293b; /* bg-slate-800 */
             border-color: #334155; /* border-slate-700 */
         }
+        
     </style>
 </head>
 <body class="text-slate-200 min-h-screen p-4 sm:p-6">
 
-    <!-- Increased max-width to allow for side-by-side layout -->
     <div class="max-w-7xl mx-auto">
         <header class="text-center mb-6">
             <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
@@ -86,16 +86,16 @@
             </h1>
         </header>
 
-        <!-- New: Main content grid. Stacks on mobile, 2 cols on large screens -->
+        <!-- Main content grid. Stacks on mobile, 2 cols on large screens -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- New: Left Column for controls and setup -->
+            <!-- Left Column for controls and setup -->
             <div class="flex flex-col gap-6">
 
                 <!-- Current Number Display (Order 1) -->
-                <div class="bg-slate-800 rounded-lg p-6 sm:p-8 shadow-xl border border-slate-700 order-1">
+                <div id="current-number-container" class="bg-slate-800 rounded-lg p-6 sm:p-8 shadow-xl border border-slate-700 order-1">
                     <div class="text-sm font-medium text-blue-400 text-center uppercase tracking-wider mb-3">Current Number</div>
-                    <!-- Changed font sizes for better scaling: text-7xl sm:text-8xl md:text-9xl -->
+                    <!-- Responsive font sizes for current number -->
                     <div id="current-number-display" class="text-7xl sm:text-8xl md:text-9xl font-bold text-slate-500 text-center" style="line-height: 1;">
                         --
                     </div>
@@ -106,7 +106,6 @@
                     <button id="start-auto-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 shadow-lg">
                         Start Game
                     </button>
-                    <!-- New: Message area for the start button -->
                     <div id="start-message-area" class="text-red-400 text-center text-sm"></div>
                 </div>
 
@@ -116,47 +115,85 @@
                         Draw Next Number
                     </button>
                     <button id="reset-button" class="w-full bg-transparent hover:bg-slate-700 text-blue-400 font-semibold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 border-2 border-blue-500 hover:border-blue-400">
-                        Reset Game
+                        End Round
                     </button>
                     <div id="auto-message-area" class="text-red-400 text-center sm:col-span-2"></div>
                 </div>
 
+                <!-- Results Section (hidden by default) (Order 2) -->
+                <div id="results-section" class="hidden bg-slate-800 rounded-lg p-6 sm:p-8 shadow-xl border border-slate-700 order-2">
+                    <h2 class="text-2xl font-bold text-center text-blue-400 mb-4">Round Over!</h2>
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-slate-300 mb-2">Winning Record:</h3>
+                        <ul id="results-list" class="space-y-2 text-slate-300">
+                            <!-- Results will be populated by JS -->
+                        </ul>
+                    </div>
+                    <button id="start-new-round-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 shadow-lg">
+                        Start New Round
+                    </button>
+                </div>
+
+
                 <!-- Prize Pool & Setup (Order 3) -->
-                <div id="setup-section" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-800 rounded-lg p-4 sm:p-6 shadow-lg border border-slate-700 order-3">
-                    <!-- Left Side: Setup Inputs -->
+                <div id="setup-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800 rounded-lg p-4 sm:p-6 shadow-lg border border-slate-700 order-3">
+                    
+                    <!-- Left Side: Player Management -->
                     <div class="space-y-4">
-                        <h2 class="text-xl font-semibold text-blue-400">Game Setup & Prize Pool</h2>
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-blue-400">Player Management</h2>
+                            <!-- Round Counter -->
+                            <span id="round-counter" class="text-lg font-semibold text-cyan-400">Round: 1</span>
+                        </div>
+                        
                         <div>
-                            <label for="bet-amount" class="block text-sm font-medium text-slate-300 mb-1">Bet Amount (₹) per Ticket</label>
-                            <input type="number" id="bet-amount" value="10" min="0" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                            <label for="player-name" class="block text-sm font-medium text-slate-300 mb-1">Player Name</label>
+                            <input type="text" id="player-name" list="player-names-list" placeholder="Enter or select player" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                            <datalist id="player-names-list">
+                                <!-- Player names will be populated by JS -->
+                            </datalist>
                         </div>
                         <div>
-                            <label for="tickets-sold" class="block text-sm font-medium text-slate-300 mb-1">Total Tickets Sold</label>
-                            <input type="number" id="tickets-sold" value="50" min="0" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                            <label for="player-tickets" class="block text-sm font-medium text-slate-300 mb-1">Tickets Purchased</label>
+                            <input type="number" id="player-tickets" value="1" min="1" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
                         </div>
-                        <button id="calculate-prize-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
-                            Calculate Prize Pool
+                        <button id="add-player-button" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                            Add / Update Player
                         </button>
+                        <div id="player-message-area" class="text-red-400 text-center text-sm"></div>
+
+                        <h3 class="text-lg font-semibold text-slate-300 pt-2">Player List & Winnings</h3>
+                        <ul id="player-list" class="space-y-2 text-slate-400 text-sm max-h-40 overflow-y-auto">
+                            <!-- Player list will be populated by JS -->
+                            <li class="italic">No players added yet.</li>
+                        </ul>
                     </div>
                     
                     <!-- Right Side: Prize Display -->
-                    <div class="mt-4 md:mt-0">
-                        <h2 class="text-xl font-semibold text-blue-400">Prize Money</h2>
+                    <div class="space-y-4 mt-4 md:mt-0">
+                        <h2 class="text-xl font-semibold text-blue-400">Game Setup</h2>
+                        
+                        <div>
+                            <label for="bet-amount" class="block text-sm font-medium text-slate-300 mb-1">Bet Amount (₹) per Ticket</Labe>
+                            <input type="number" id="bet-amount" value="10" min="0" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <button id="calculate-prize-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                            Calculate Prize Pool
+                        </button>
+
+                        <h2 class="text-xl font-semibold text-blue-400 pt-2">Prize Money</h2>
+                        <div id="total-tickets-display" class="font-semibold text-slate-300">Total Tickets: 0</div>
                         <div id="total-collection-display" class="font-semibold text-lg text-slate-300 my-2">Total Collection: ₹0</div>
-                        <ul id="prize-list" class="space-y-2 text-slate-300">
+                        <ul id="prize-list" class="space-y-3 text-slate-300">
                             <!-- Prize distribution will be populated by JS -->
-                            <li>Full House (55%): ₹0</li>
-                            <li>First Line (15%): ₹0</li>
-                            <li>Second Line (15%): ₹0</li>
-                            <li>Third Line (15%): ₹0</li>
                         </ul>
                     </div>
                 </div>
 
             </div> <!-- End Left Column -->
 
-            <!-- New: Right Column for Tambola Board -->
-            <!-- Added lg:sticky and lg:top-6 so board stays in view on long left column -->
+            <!-- Right Column for Tambola Board -->
             <div id="tambola-board-container" class="bg-slate-800 rounded-lg p-4 sm:p-6 shadow-lg border border-slate-700 lg:sticky lg:top-6 h-fit">
                 <h2 class="text-xl font-semibold text-center text-blue-400 mb-4">Tambola Board</h2>
                 <div id="tambola-board">
@@ -178,7 +215,12 @@
             let availableNumbers = [];
             let calledNumbers = new Set();
             let currentNumber = null;
-            let prizePoolCalculated = false; // New state variable
+            let prizePoolCalculated = false;
+            let players = []; // Persistent list of players { name, tickets, winnings, totalSpent }
+            let totalTickets = 0;
+            let totalCollection = 0;
+            let roundCount = 1;
+            let currentBetAmount = 0; // To lock in bet amount for the round
             const prizes = [
                 { name: 'Full House', percent: 0.55, isLine: false },
                 { name: 'First Line', percent: 0.15, isLine: true },
@@ -187,21 +229,37 @@
             ];
 
             // --- DOM Elements ---
+            const currentNumberContainer = document.getElementById('current-number-container');
             const currentNumberDisplay = document.getElementById('current-number-display');
             const tambolaBoard = document.getElementById('tambola-board');
+            const tambolaBoardContainer = document.getElementById('tambola-board-container');
             const startButtonsContainer = document.getElementById('start-buttons-container');
             const startAutoButton = document.getElementById('start-auto-button');
-            const startMessageArea = document.getElementById('start-message-area'); // New DOM element
+            const startMessageArea = document.getElementById('start-message-area');
             const autoDrawSection = document.getElementById('auto-draw-section');
             const drawNumberButton = document.getElementById('draw-number-button');
             const autoMessageArea = document.getElementById('auto-message-area');
             const resetButton = document.getElementById('reset-button');
             const setupSection = document.getElementById('setup-section');
             const betAmountInput = document.getElementById('bet-amount');
-            const ticketsSoldInput = document.getElementById('tickets-sold');
             const calculatePrizeButton = document.getElementById('calculate-prize-button');
             const totalCollectionDisplay = document.getElementById('total-collection-display');
+            const totalTicketsDisplay = document.getElementById('total-tickets-display');
             const prizeList = document.getElementById('prize-list');
+            const roundCounter = document.getElementById('round-counter'); 
+
+            // Player Management Elements
+            const playerNameInput = document.getElementById('player-name');
+            const playerTicketsInput = document.getElementById('player-tickets');
+            const addPlayerButton = document.getElementById('add-player-button');
+            const playerList = document.getElementById('player-list');
+            const playerMessageArea = document.getElementById('player-message-area');
+            const playerNamesDatalist = document.getElementById('player-names-list'); 
+
+            // Results Section Elements
+            const resultsSection = document.getElementById('results-section');
+            const resultsList = document.getElementById('results-list');
+            const startNewRoundButton = document.getElementById('start-new-round-button');
 
             /**
              * Creates the 90 number cells on the board.
@@ -216,15 +274,110 @@
                     tambolaBoard.appendChild(cell);
                 }
             }
+
+            /**
+             * Adds or updates a player in the list.
+             */
+            function handleAddPlayer() {
+                const name = playerNameInput.value.trim();
+                const tickets = parseInt(playerTicketsInput.value) || 0;
+
+                if (!name) {
+                    playerMessageArea.textContent = 'Please enter a player name.';
+                    return;
+                }
+                if (tickets <= 0) {
+                    playerMessageArea.textContent = 'Player must have at least 1 ticket.';
+                    return;
+                }
+
+                const existingPlayer = players.find(p => p.name.toLowerCase() === name.toLowerCase());
+
+                if (existingPlayer) {
+                    // Update tickets for existing player
+                    existingPlayer.tickets = tickets;
+                } else {
+                    // Add new player with 0 winnings and 0 spent
+                    players.push({ name, tickets, winnings: 0, totalSpent: 0 });
+                    updatePlayerDatalist(name); 
+                }
+
+                playerMessageArea.textContent = '';
+                playerNameInput.value = '';
+                playerTicketsInput.value = '1';
+                
+                updatePlayerList();
+                updateTotalTickets();
+            }
+
+            /**
+             * Updates the player <datalist> for autocomplete.
+             */
+            function updatePlayerDatalist(newPlayerName) {
+                const option = document.createElement('option');
+                option.value = newPlayerName;
+                playerNamesDatalist.appendChild(option);
+            }
+
+            /**
+             * Re-renders the player list display (now shows spent & winnings).
+             */
+            function updatePlayerList() {
+                if (players.length === 0) {
+                    playerList.innerHTML = '<li class="italic">No players added yet.</li>';
+                    return;
+                }
+
+                playerList.innerHTML = '';
+                // Sort by winnings descending
+                players.sort((a, b) => b.winnings - a.winnings);
+                
+                players.forEach(player => {
+                    const li = document.createElement('li');
+                    li.className = "flex flex-col text-xs"; // Smaller text
+                    li.innerHTML = `
+                        <span class="font-medium text-slate-200">${player.name} (${player.tickets} tix)</span>
+                        <div class="flex justify-between">
+                            <span class="text-red-400">Spent: ₹${player.totalSpent.toFixed(2)}</span>
+                            <span class="font-medium text-cyan-300">Won: ₹${player.winnings.toFixed(2)}</span>
+                        </div>
+                    `;
+                    playerList.appendChild(li);
+                });
+            }
+
+            /**
+             * Updates the total ticket count.
+             */
+            function updateTotalTickets() {
+                totalTickets = players.reduce((sum, player) => sum + player.tickets, 0);
+                totalTicketsDisplay.textContent = `Total Tickets: ${totalTickets}`;
+                prizePoolCalculated = false; // Force recalculation
+                totalCollection = 0;
+                totalCollectionDisplay.textContent = 'Total Collection: ₹0';
+            }
             
             /**
              * Calculates and displays the prize pool based on inputs.
+             * NEW: Also updates player 'totalSpent' for the round.
              */
             function calculatePrizePool() {
-                const betAmount = parseFloat(betAmountInput.value) || 0;
-                const ticketsSold = parseInt(ticketsSoldInput.value) || 0;
-                const totalCollection = betAmount * ticketsSold;
+                currentBetAmount = parseFloat(betAmountInput.value) || 0; // Lock in bet amount
+                
+                if (totalTickets === 0) {
+                    startMessageArea.textContent = 'Please add players and their tickets first!';
+                    return;
+                }
 
+                totalCollection = currentBetAmount * totalTickets; // Store total collection
+
+                // Update totalSpent for each player for this round
+                players.forEach(player => {
+                    player.totalSpent += player.tickets * currentBetAmount;
+                });
+                
+                // Update UI
+                updatePlayerList(); // Show new 'Spent' totals
                 totalCollectionDisplay.textContent = `Total Collection: ₹${totalCollection.toFixed(2)}`;
                 
                 prizeList.innerHTML = ''; // Clear existing list
@@ -240,33 +393,34 @@
 
             /**
              * Helper: Checks if all line prizes are claimed to enable Full House.
-             * THIS FUNCTION IS NOW FIXED.
              */
             function checkLineCheckboxes() {
-                // Correctly use the hyphenated IDs that are created
                 const line1 = document.getElementById('prize-First-Line');
                 const line2 = document.getElementById('prize-Second-Line');
                 const line3 = document.getElementById('prize-Third-Line');
                 const fullHouse = document.getElementById('prize-Full-House');
 
-                if (!line1 || !line2 || !line3 || !fullHouse) return; // Safety check
+                if (!line1 || !line2 || !line3 || !fullHouse) return;
 
                 if (line1.checked && line2.checked && line3.checked) {
                     fullHouse.disabled = false;
                 } else {
                     fullHouse.disabled = true;
+                    fullHouse.checked = false; 
+                    fullHouse.dispatchEvent(new Event('change')); 
                 }
             }
 
             /**
-             * Helper function to create a prize list item with a checkbox.
-             * @param {object} prize - The prize object {name, percent, isLine}
-             * @param {number} prizeAmount - The calculated amount for the prize
-             * @returns {HTMLLIElement} - The fully constructed <li> element
+             * Helper function to create a prize list item with a checkbox and winner dropdown.
              */
             function createPrizeListItem(prize, prizeAmount) {
                 const li = document.createElement('li');
-                li.className = "flex items-center justify-between";
+                li.className = "flex flex-col space-y-2";
+                li.dataset.amount = prizeAmount; // Store amount
+
+                const mainRow = document.createElement('div');
+                mainRow.className = "flex items-center justify-between";
 
                 const textSpan = document.createElement('span');
                 textSpan.textContent = `${prize.name} (${prize.percent * 100}%): ₹${prizeAmount.toFixed(2)}`;
@@ -276,27 +430,31 @@
                 
                 const checkbox = document.createElement('input');
                 checkbox.type = "checkbox";
-                // This creates IDs like "prize-First-Line" and "prize-Full-House"
                 checkbox.id = `prize-${prize.name.replace(' ', '-')}`; 
                 checkbox.className = "h-5 w-5 rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 focus:ring-offset-slate-800";
                 checkbox.disabled = true;
                 
                 const labelText = document.createElement('span');
                 labelText.textContent = " Claim";
+
+                const winnerSelect = document.createElement('select');
+                winnerSelect.id = `winner-${prize.name.replace(' ', '-')}`;
+                winnerSelect.className = "winner-select hidden w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white text-sm";
                 
                 checkbox.addEventListener('change', (e) => {
                     if (e.target.checked) {
                         textSpan.classList.add('text-slate-500', 'line-through');
                         checkboxLabel.classList.add('text-blue-400');
                         labelText.textContent = " Claimed!";
+                        winnerSelect.classList.remove('hidden');
                     } else {
                         textSpan.classList.remove('text-slate-500', 'line-through');
                         checkboxLabel.classList.remove('text-blue-400');
                         labelText.textContent = " Claim";
+                        winnerSelect.classList.add('hidden');
                     }
                 });
 
-                // If it's a line prize, add the listener to check for Full House
                 if (prize.isLine) {
                     checkbox.addEventListener('change', checkLineCheckboxes);
                 }
@@ -304,11 +462,29 @@
                 checkboxLabel.appendChild(checkbox);
                 checkboxLabel.appendChild(labelText);
 
-                li.appendChild(textSpan);
-                li.appendChild(checkboxLabel);
+                mainRow.appendChild(textSpan);
+                mainRow.appendChild(checkboxLabel);
+                
+                li.appendChild(mainRow);
+                li.appendChild(winnerSelect);
                 return li;
             }
 
+            /**
+             * Populates all winner dropdowns with the current player list.
+             */
+            function populateWinnerDropdowns() {
+                const selects = document.querySelectorAll('.winner-select');
+                selects.forEach(select => {
+                    select.innerHTML = '<option value="">Select Winner...</option>'; // Clear and add default
+                    players.forEach(player => {
+                        const option = document.createElement('option');
+                        option.value = player.name;
+                        option.textContent = player.name;
+                        select.appendChild(option);
+                    });
+                });
+            }
 
             /**
              * Initializes or resets the game to its starting state.
@@ -318,8 +494,18 @@
                 availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
                 calledNumbers.clear();
                 currentNumber = null;
-                prizePoolCalculated = false; // Reset state
+                prizePoolCalculated = false;
+                totalTickets = 0;
+                totalCollection = 0;
+                currentBetAmount = 0;
                 
+                roundCounter.textContent = `Round: ${roundCount}`; // Update round counter
+
+                // Reset player tickets but keep players, winnings, and totalSpent
+                players.forEach(p => p.tickets = 0);
+                updatePlayerList();
+                updateTotalTickets();
+
                 currentNumberDisplay.textContent = '--';
                 currentNumberDisplay.classList.add('text-slate-500');
                 currentNumberDisplay.classList.remove('text-slate-100');
@@ -329,118 +515,178 @@
                     cell.classList.remove('called', 'current');
                 });
                 
+                // Enable setup
                 betAmountInput.disabled = false;
-                ticketsSoldInput.disabled = false;
                 calculatePrizeButton.disabled = false;
-                totalCollectionDisplay.textContent = 'Total Collection: ₹0';
+                playerNameInput.disabled = false;
+                playerTicketsInput.disabled = false;
+                addPlayerButton.disabled = false;
                 
-                prizeList.innerHTML = ''; // Clear existing list
-                for (const prize of prizes) {
-                    const li = createPrizeListItem(prize, 0); // Use helper with 0
-                    prizeList.appendChild(li);
-                }
+                totalCollectionDisplay.textContent = 'Total Collection: ₹0';
+                prizeList.innerHTML = ''; // Clear prizes
 
+                // Show correct controls
                 autoDrawSection.classList.add('hidden');
+                resultsSection.classList.add('hidden');
                 startButtonsContainer.classList.remove('hidden');
+                
+                // Show game elements
+                currentNumberContainer.classList.remove('hidden');
+                setupSection.classList.remove('hidden');
+                tambolaBoardContainer.classList.remove('hidden');
+
 
                 autoMessageArea.textContent = '';
-                startMessageArea.textContent = ''; // Clear start error
+                startMessageArea.textContent = '';
                 drawNumberButton.disabled = false;
             }
 
             /**
-             * Handles the click on the "Start Game" button.
+             * Handles the "Start Game" button click.
              */
             function handleStartGame() {
-                // New check: Don't start if prize pool isn't calculated
                 if (!prizePoolCalculated) {
-                    startMessageArea.textContent = 'Please calculate the prize pool first!';
+                    startMessageArea.textContent = 'Please calculate the prize pool before starting!';
                     return;
                 }
-                
-                if (gameInProgress) return;
+                if (totalTickets <= 0) {
+                    startMessageArea.textContent = 'Please add players and tickets!';
+                    return;
+                }
+
                 gameInProgress = true;
-
-                calculatePrizePool();
                 
+                // Lock setup inputs
                 betAmountInput.disabled = true;
-                ticketsSoldInput.disabled = true;
                 calculatePrizeButton.disabled = true;
-
-                const prizeCheckboxes = prizeList.querySelectorAll('input[type="checkbox"]');
-                prizeCheckboxes.forEach(cb => {
-                    cb.disabled = false;
-                });
-
-                // Manually disable the Full House checkbox after enabling all
-                // This also uses the corrected hyphenated ID
+                playerNameInput.disabled = true;
+                playerTicketsInput.disabled = true;
+                addPlayerButton.disabled = true;
+                
+                // Populate dropdowns, then enable checkboxes
+                populateWinnerDropdowns();
+                const checkboxes = prizeList.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.disabled = false);
+                
+                // Re-disable Full House
                 const fullHouseCheckbox = document.getElementById('prize-Full-House');
                 if (fullHouseCheckbox) {
                     fullHouseCheckbox.disabled = true;
                 }
-
+                
+                // Swap control buttons
                 startButtonsContainer.classList.add('hidden');
                 autoDrawSection.classList.remove('hidden');
+                startMessageArea.textContent = '';
             }
-
+            
             /**
-             * Handles the click on the "Draw Next Number" button (Auto Mode).
+             * Handles the "Draw Next Number" button click.
              */
             function handleDrawNumberClick() {
                 if (availableNumbers.length === 0) {
-                    autoMessageArea.textContent = 'All numbers have been drawn!';
+                    autoMessageArea.textContent = 'All 90 numbers have been called!';
                     drawNumberButton.disabled = true;
                     return;
                 }
 
-                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-                const newNumber = availableNumbers[randomIndex];
-                
-                availableNumbers.splice(randomIndex, 1);
-                calledNumbers.add(newNumber);
-                
+                // Remove 'current' class from the previous number
                 if (currentNumber) {
                     const prevCell = document.getElementById(`cell-${currentNumber}`);
                     if (prevCell) {
                         prevCell.classList.remove('current');
                     }
                 }
-                
+
+                // Pick a new number
+                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                const newNumber = availableNumbers.splice(randomIndex, 1)[0];
+                calledNumbers.add(newNumber);
                 currentNumber = newNumber;
-                
-                const currentCell = document.getElementById(`cell-${currentNumber}`);
-                if (currentCell) {
-                    currentCell.classList.add('called', 'current');
-                }
-                
-                currentNumberDisplay.textContent = currentNumber;
+
+                // Update the big display
+                currentNumberDisplay.textContent = newNumber;
                 currentNumberDisplay.classList.remove('text-slate-500');
                 currentNumberDisplay.classList.add('text-slate-100');
+
+                // Update the board
+                const newCell = document.getElementById(`cell-${newNumber}`);
+                if (newCell) {
+                    newCell.classList.add('called', 'current');
+                }
             }
 
             /**
-             * Handles the click on the "Reset Game" button.
+             * Handles the "End Round" button click.
              */
-            function handleResetButtonClick() {
-                initGame();
+            function handleResetClick() {
+                // 1. Gather results and update winnings
+                resultsList.innerHTML = ''; // Clear previous results
+                let claimedCount = 0;
+
+                prizes.forEach(prize => {
+                    const prizeName = prize.name;
+                    const checkbox = document.getElementById(`prize-${prizeName.replace(' ', '-')}`);
+                    
+                    if (checkbox && checkbox.checked) {
+                        const select = document.getElementById(`winner-${prizeName.replace(' ', '-')}`);
+                        const winnerName = select.value;
+                        const prizeAmount = parseFloat(checkbox.closest('li').dataset.amount) || 0;
+                        
+                        let winnerDisplay = "Unassigned";
+                        if (winnerName) {
+                            const winner = players.find(p => p.name === winnerName);
+                            if (winner) {
+                                winner.winnings += prizeAmount;
+                                winnerDisplay = winner.name;
+                            }
+                        }
+                        
+                        const li = document.createElement('li');
+                        li.className = "flex justify-between";
+                        li.innerHTML = `<span>${prizeName} (₹${prizeAmount.toFixed(2)}):</span> <span class="font-semibold text-blue-400">${winnerDisplay}</span>`;
+                        resultsList.appendChild(li);
+                        claimedCount++;
+                    }
+                });
+
+                if (claimedCount === 0) {
+                    resultsList.innerHTML = '<li class="text-slate-400 italic">No prizes were claimed this round.</li>';
+                }
+
+                // 2. Hide game controls, show results
+                autoDrawSection.classList.add('hidden');
+                currentNumberContainer.classList.add('hidden');
+                setupSection.classList.add('hidden');
+                tambolaBoardContainer.classList.add('hidden');
+                
+                resultsSection.classList.remove('hidden');
+                
+                // 3. Update player list to show new winnings
+                updatePlayerList();
+            }
+
+            /**
+             * Handles "Start New Round" from the results section.
+             */
+            function handleStartNewRound() {
+                roundCount++; // Increment round
+                initGame(); // Reset the game
             }
 
             // --- Event Listeners ---
+            addPlayerButton.addEventListener('click', handleAddPlayer);
+            calculatePrizeButton.addEventListener('click', calculatePrizePool);
             startAutoButton.addEventListener('click', handleStartGame);
             drawNumberButton.addEventListener('click', handleDrawNumberClick);
-            resetButton.addEventListener('click', handleResetButtonClick);
-            calculatePrizeButton.addEventListener('click', calculatePrizePool);
+            resetButton.addEventListener('click', handleResetClick);
+            startNewRoundButton.addEventListener('click', handleStartNewRound);
 
-            // --- Initial Setup ---
+            // Initial setup
             createTambolaBoard();
             initGame();
         });
     </script>
 </body>
 </html>
-
-
-
-
-
 
