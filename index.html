@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambola Game Manager</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* bg-slate-900 */
+        }
+        /* Grid for the 90 numbers */
+        #tambola-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.375rem; /* 6px */
+            /* Removed max-width to let it fill its container */
+            margin: auto;
+        }
+        /* Base style for a number cell */
+        .number-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.75rem; /* 12px - Made smaller for narrow screens */
+            font-weight: 600;
+            border-radius: 0.375rem; /* 6px */
+            background-color: #334155; /* bg-slate-700 */
+            color: #cbd5e1; /* text-slate-300 */
+            transition: all 0.2s ease-in-out;
+        }
+        /* New: Media query to increase font size on larger screens */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .number-cell {
+                font-size: 0.875rem; /* 14px */
+            }
+        }
+        /* Style for a number that has been called */
+        .number-cell.called {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: #ffffff; /* text-white */
+            transform: scale(1.05);
+        }
+        /* Style for the most recently called number */
+        .number-cell.current {
+            animation: pulse-glow 1s infinite alternate;
+        }
+        
+        /* Animation for the current number */
+        @keyframes pulse-glow {
+            from {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 0px rgba(59, 130, 246, 0.7); /* bg-blue-600 with opacity */
+            }
+            to {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3); /* Lighter glow */
+            }
+        }
+
+        /* Style for disabled prize checkboxes */
+        input[type="checkbox"]:disabled + span {
+            color: #475569; /* text-slate-600 */
+        }
+        input[type="checkbox"]:disabled {
+            background-color: #1e293b; /* bg-slate-800 */
+            border-color: #334155; /* border-slate-700 */
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen p-4 sm:p-6">
+
+    <!-- Increased max-width to allow for side-by-side layout -->
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                Tambola Game Manager
+            </h1>
+        </header>
+
+        <!-- New: Main content grid. Stacks on mobile, 2 cols on large screens -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- New: Left Column for controls and setup -->
+            <div class="flex flex-col gap-6">
+
+                <!-- Current Number Display (Order 1) -->
+                <div class="bg-slate-800 rounded-lg p-6 sm:p-8 shadow-xl border border-slate-700 order-1">
+                    <div class="text-sm font-medium text-blue-400 text-center uppercase tracking-wider mb-3">Current Number</div>
+                    <!-- Changed font sizes for better scaling: text-7xl sm:text-8xl md:text-9xl -->
+                    <div id="current-number-display" class="text-7xl sm:text-8xl md:text-9xl font-bold text-slate-500 text-center" style="line-height: 1;">
+                        --
+                    </div>
+                </div>
+
+                <!-- Control Buttons (Order 2) -->
+                <div id="start-buttons-container" class="grid grid-cols-1 gap-4 order-2">
+                    <button id="start-auto-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 shadow-lg">
+                        Start Game
+                    </button>
+                    <!-- New: Message area for the start button -->
+                    <div id="start-message-area" class="text-red-400 text-center text-sm"></div>
+                </div>
+
+                <!-- Auto Draw Section (hidden by default) (Order 2) -->
+                <div id="auto-draw-section" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 order-2">
+                    <button id="draw-number-button" class="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 shadow-lg">
+                        Draw Next Number
+                    </button>
+                    <button id="reset-button" class="w-full bg-transparent hover:bg-slate-700 text-blue-400 font-semibold py-3 px-4 rounded-lg text-lg sm:text-xl transition duration-200 border-2 border-blue-500 hover:border-blue-400">
+                        Reset Game
+                    </button>
+                    <div id="auto-message-area" class="text-red-400 text-center sm:col-span-2"></div>
+                </div>
+
+                <!-- Prize Pool & Setup (Order 3) -->
+                <div id="setup-section" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-800 rounded-lg p-4 sm:p-6 shadow-lg border border-slate-700 order-3">
+                    <!-- Left Side: Setup Inputs -->
+                    <div class="space-y-4">
+                        <h2 class="text-xl font-semibold text-blue-400">Game Setup & Prize Pool</h2>
+                        <div>
+                            <label for="bet-amount" class="block text-sm font-medium text-slate-300 mb-1">Bet Amount (₹) per Ticket</label>
+                            <input type="number" id="bet-amount" value="10" min="0" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="tickets-sold" class="block text-sm font-medium text-slate-300 mb-1">Total Tickets Sold</label>
+                            <input type="number" id="tickets-sold" value="50" min="0" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button id="calculate-prize-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                            Calculate Prize Pool
+                        </button>
+                    </div>
+                    
+                    <!-- Right Side: Prize Display -->
+                    <div class="mt-4 md:mt-0">
+                        <h2 class="text-xl font-semibold text-blue-400">Prize Money</h2>
+                        <div id="total-collection-display" class="font-semibold text-lg text-slate-300 my-2">Total Collection: ₹0</div>
+                        <ul id="prize-list" class="space-y-2 text-slate-300">
+                            <!-- Prize distribution will be populated by JS -->
+                            <li>Full House (55%): ₹0</li>
+                            <li>First Line (15%): ₹0</li>
+                            <li>Second Line (15%): ₹0</li>
+                            <li>Third Line (15%): ₹0</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div> <!-- End Left Column -->
+
+            <!-- New: Right Column for Tambola Board -->
+            <!-- Added lg:sticky and lg:top-6 so board stays in view on long left column -->
+            <div id="tambola-board-container" class="bg-slate-800 rounded-lg p-4 sm:p-6 shadow-lg border border-slate-700 lg:sticky lg:top-6 h-fit">
+                <h2 class="text-xl font-semibold text-center text-blue-400 mb-4">Tambola Board</h2>
+                <div id="tambola-board">
+                    <!-- Numbers 1-90 will be generated by JS -->
+                </div>
+            </div> <!-- End Right Column -->
+
+        </div> <!-- End Main content grid -->
+    </div> <!-- End max-w-7xl -->
+
+    <footer class="text-center text-slate-500 text-base mt-8 pb-6">
+        Created by Pranab Sengupta
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- State Variables ---
+            let gameInProgress = false;
+            let availableNumbers = [];
+            let calledNumbers = new Set();
+            let currentNumber = null;
+            let prizePoolCalculated = false; // New state variable
+            const prizes = [
+                { name: 'Full House', percent: 0.55, isLine: false },
+                { name: 'First Line', percent: 0.15, isLine: true },
+                { name: 'Second Line', percent: 0.15, isLine: true },
+                { name: 'Third Line', percent: 0.15, isLine: true }
+            ];
+
+            // --- DOM Elements ---
+            const currentNumberDisplay = document.getElementById('current-number-display');
+            const tambolaBoard = document.getElementById('tambola-board');
+            const startButtonsContainer = document.getElementById('start-buttons-container');
+            const startAutoButton = document.getElementById('start-auto-button');
+            const startMessageArea = document.getElementById('start-message-area'); // New DOM element
+            const autoDrawSection = document.getElementById('auto-draw-section');
+            const drawNumberButton = document.getElementById('draw-number-button');
+            const autoMessageArea = document.getElementById('auto-message-area');
+            const resetButton = document.getElementById('reset-button');
+            const setupSection = document.getElementById('setup-section');
+            const betAmountInput = document.getElementById('bet-amount');
+            const ticketsSoldInput = document.getElementById('tickets-sold');
+            const calculatePrizeButton = document.getElementById('calculate-prize-button');
+            const totalCollectionDisplay = document.getElementById('total-collection-display');
+            const prizeList = document.getElementById('prize-list');
+
+            /**
+             * Creates the 90 number cells on the board.
+             */
+            function createTambolaBoard() {
+                tambolaBoard.innerHTML = '';
+                for (let i = 1; i <= 90; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('number-cell');
+                    cell.textContent = i;
+                    cell.id = `cell-${i}`;
+                    tambolaBoard.appendChild(cell);
+                }
+            }
+            
+            /**
+             * Calculates and displays the prize pool based on inputs.
+             */
+            function calculatePrizePool() {
+                const betAmount = parseFloat(betAmountInput.value) || 0;
+                const ticketsSold = parseInt(ticketsSoldInput.value) || 0;
+                const totalCollection = betAmount * ticketsSold;
+
+                totalCollectionDisplay.textContent = `Total Collection: ₹${totalCollection.toFixed(2)}`;
+                
+                prizeList.innerHTML = ''; // Clear existing list
+                for (const prize of prizes) {
+                    const prizeAmount = totalCollection * prize.percent;
+                    const li = createPrizeListItem(prize, prizeAmount);
+                    prizeList.appendChild(li);
+                }
+                
+                prizePoolCalculated = true; // Set state to true
+                startMessageArea.textContent = ''; // Clear any error
+            }
+
+            /**
+             * Helper: Checks if all line prizes are claimed to enable Full House.
+             * THIS FUNCTION IS NOW FIXED.
+             */
+            function checkLineCheckboxes() {
+                // Correctly use the hyphenated IDs that are created
+                const line1 = document.getElementById('prize-First-Line');
+                const line2 = document.getElementById('prize-Second-Line');
+                const line3 = document.getElementById('prize-Third-Line');
+                const fullHouse = document.getElementById('prize-Full-House');
+
+                if (!line1 || !line2 || !line3 || !fullHouse) return; // Safety check
+
+                if (line1.checked && line2.checked && line3.checked) {
+                    fullHouse.disabled = false;
+                } else {
+                    fullHouse.disabled = true;
+                }
+            }
+
+            /**
+             * Helper function to create a prize list item with a checkbox.
+             * @param {object} prize - The prize object {name, percent, isLine}
+             * @param {number} prizeAmount - The calculated amount for the prize
+             * @returns {HTMLLIElement} - The fully constructed <li> element
+             */
+            function createPrizeListItem(prize, prizeAmount) {
+                const li = document.createElement('li');
+                li.className = "flex items-center justify-between";
+
+                const textSpan = document.createElement('span');
+                textSpan.textContent = `${prize.name} (${prize.percent * 100}%): ₹${prizeAmount.toFixed(2)}`;
+                
+                const checkboxLabel = document.createElement('label');
+                checkboxLabel.className = "flex items-center space-x-2 text-sm text-slate-400 cursor-pointer";
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = "checkbox";
+                // This creates IDs like "prize-First-Line" and "prize-Full-House"
+                checkbox.id = `prize-${prize.name.replace(' ', '-')}`; 
+                checkbox.className = "h-5 w-5 rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 focus:ring-offset-slate-800";
+                checkbox.disabled = true;
+                
+                const labelText = document.createElement('span');
+                labelText.textContent = " Claim";
+                
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        textSpan.classList.add('text-slate-500', 'line-through');
+                        checkboxLabel.classList.add('text-blue-400');
+                        labelText.textContent = " Claimed!";
+                    } else {
+                        textSpan.classList.remove('text-slate-500', 'line-through');
+                        checkboxLabel.classList.remove('text-blue-400');
+                        labelText.textContent = " Claim";
+                    }
+                });
+
+                // If it's a line prize, add the listener to check for Full House
+                if (prize.isLine) {
+                    checkbox.addEventListener('change', checkLineCheckboxes);
+                }
+
+                checkboxLabel.appendChild(checkbox);
+                checkboxLabel.appendChild(labelText);
+
+                li.appendChild(textSpan);
+                li.appendChild(checkboxLabel);
+                return li;
+            }
+
+
+            /**
+             * Initializes or resets the game to its starting state.
+             */
+            function initGame() {
+                gameInProgress = false;
+                availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
+                calledNumbers.clear();
+                currentNumber = null;
+                prizePoolCalculated = false; // Reset state
+                
+                currentNumberDisplay.textContent = '--';
+                currentNumberDisplay.classList.add('text-slate-500');
+                currentNumberDisplay.classList.remove('text-slate-100');
+                
+                const cells = tambolaBoard.querySelectorAll('.number-cell');
+                cells.forEach(cell => {
+                    cell.classList.remove('called', 'current');
+                });
+                
+                betAmountInput.disabled = false;
+                ticketsSoldInput.disabled = false;
+                calculatePrizeButton.disabled = false;
+                totalCollectionDisplay.textContent = 'Total Collection: ₹0';
+                
+                prizeList.innerHTML = ''; // Clear existing list
+                for (const prize of prizes) {
+                    const li = createPrizeListItem(prize, 0); // Use helper with 0
+                    prizeList.appendChild(li);
+                }
+
+                autoDrawSection.classList.add('hidden');
+                startButtonsContainer.classList.remove('hidden');
+
+                autoMessageArea.textContent = '';
+                startMessageArea.textContent = ''; // Clear start error
+                drawNumberButton.disabled = false;
+            }
+
+            /**
+             * Handles the click on the "Start Game" button.
+             */
+            function handleStartGame() {
+                // New check: Don't start if prize pool isn't calculated
+                if (!prizePoolCalculated) {
+                    startMessageArea.textContent = 'Please calculate the prize pool first!';
+                    return;
+                }
+                
+                if (gameInProgress) return;
+                gameInProgress = true;
+
+                calculatePrizePool();
+                
+                betAmountInput.disabled = true;
+                ticketsSoldInput.disabled = true;
+                calculatePrizeButton.disabled = true;
+
+                const prizeCheckboxes = prizeList.querySelectorAll('input[type="checkbox"]');
+                prizeCheckboxes.forEach(cb => {
+                    cb.disabled = false;
+                });
+
+                // Manually disable the Full House checkbox after enabling all
+                // This also uses the corrected hyphenated ID
+                const fullHouseCheckbox = document.getElementById('prize-Full-House');
+                if (fullHouseCheckbox) {
+                    fullHouseCheckbox.disabled = true;
+                }
+
+                startButtonsContainer.classList.add('hidden');
+                autoDrawSection.classList.remove('hidden');
+            }
+
+            /**
+             * Handles the click on the "Draw Next Number" button (Auto Mode).
+             */
+            function handleDrawNumberClick() {
+                if (availableNumbers.length === 0) {
+                    autoMessageArea.textContent = 'All numbers have been drawn!';
+                    drawNumberButton.disabled = true;
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                const newNumber = availableNumbers[randomIndex];
+                
+                availableNumbers.splice(randomIndex, 1);
+                calledNumbers.add(newNumber);
+                
+                if (currentNumber) {
+                    const prevCell = document.getElementById(`cell-${currentNumber}`);
+                    if (prevCell) {
+                        prevCell.classList.remove('current');
+                    }
+                }
+                
+                currentNumber = newNumber;
+                
+                const currentCell = document.getElementById(`cell-${currentNumber}`);
+                if (currentCell) {
+                    currentCell.classList.add('called', 'current');
+                }
+                
+                currentNumberDisplay.textContent = currentNumber;
+                currentNumberDisplay.classList.remove('text-slate-500');
+                currentNumberDisplay.classList.add('text-slate-100');
+            }
+
+            /**
+             * Handles the click on the "Reset Game" button.
+             */
+            function handleResetButtonClick() {
+                initGame();
+            }
+
+            // --- Event Listeners ---
+            startAutoButton.addEventListener('click', handleStartGame);
+            drawNumberButton.addEventListener('click', handleDrawNumberClick);
+            resetButton.addEventListener('click', handleResetButtonClick);
+            calculatePrizeButton.addEventListener('click', calculatePrizePool);
+
+            // --- Initial Setup ---
+            createTambolaBoard();
+            initGame();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
